@@ -1,2 +1,3 @@
-# Nepali_Poem_Generator
+# नेपाली कविता सिर्जनाकर्ता 
 Generating Nepali Poem Using NLP
+
