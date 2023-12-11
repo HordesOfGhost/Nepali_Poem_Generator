@@ -3,6 +3,13 @@ import torch
 import random
 from typing import List
 import pickle
+import time
+
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    else:
+        return torch.device('cpu')
 
 def remove_noise(sentences):
     punctuations = ['\n','\ufeff','0','1','2','3','4','5','6','7','8','9','०','१','२','३','४','५','६','७','८','९','१०','\u200d']
@@ -111,7 +118,8 @@ class PositionalEncoding(torch.nn.Module):
         # Add positional encodings to input embeddings. The ":" indexing ensures we only add positional encodings up
         # to the length of the sequence in the batch. x.size(0) is the batch size, so this is a way to make sure
         # we're not adding extra positional encodings.
-        return x + self.positional_encoding[:x.size(1), :]
+        positional_encoding = self.positional_encoding.to(get_device())
+        return x + positional_encoding[:x.size(1), :]
     
 class MaskedSelfAttention(torch.nn.Module):
     """
@@ -379,6 +387,34 @@ class LanguageModel(torch.nn.Module):
         # Create the language model head
         self.lm_head = LMHead(embedding_dimension, number_of_tokens)
 
+    def save_checkpoint(self, path):
+        print(f'Saving checkpoint {path}')
+        torch.save({
+            'number_of_tokens': self.number_of_tokens,
+            'max_sequence_length': self.max_sequence_length,
+            'embedding_dimension': self.embedding_dimension,
+            'number_of_layers': self.number_of_layers,
+            'number_of_heads': self.number_of_heads,
+            'feed_forward_dimension': self.feed_forward_dimension,
+            'dropout_rate': self.dropout_rate,
+            'model_state_dict': self.state_dict()
+        }, path)
+
+    @staticmethod
+    def load_checkpoint(path) -> 'LanguageModel':
+        checkpoint = torch.load(path)
+        model = LanguageModel(
+            number_of_tokens=checkpoint['number_of_tokens'],
+            max_sequence_length=checkpoint['max_sequence_length'],
+            embedding_dimension=checkpoint['embedding_dimension'],
+            number_of_layers=checkpoint['number_of_layers'],
+            number_of_heads=checkpoint['number_of_heads'],
+            feed_forward_dimension=checkpoint['feed_forward_dimension'],
+            dropout_rate=checkpoint['dropout_rate']
+        )
+        model.load_state_dict(checkpoint['model_state_dict'])
+        return model
+
     def forward(self, x, mask):
         # Compute the token embeddings
         # token_embeddings dimensions are: (batch_size, sequence_length, embedding_dimension)
@@ -440,6 +476,15 @@ class AutoregressiveWrapper(torch.nn.Module):
 
         output = self.model(inp, mask)
         return output, target
+    
+    def save_checkpoint(self, path):
+        self.model.save_checkpoint(path)
+
+    @staticmethod
+    def load_checkpoint(path) -> 'AutoregressiveWrapper':
+        model = LanguageModel.load_checkpoint(path)
+        model.to(get_device())
+        return AutoregressiveWrapper(model)
 
     def next_token_probabilities(self, x, mask, temperature=1.0):
         """
@@ -472,7 +517,7 @@ class Trainer:
         loss_per_epoch = []
         for epoch in range(epochs):
             losses = []
-
+            start_time = time.time()  
             # Shuffle the sequences
             random.shuffle(data)
 
@@ -502,7 +547,7 @@ class Trainer:
                     mask_tensor[i] = mask_entry
 
                 # Compute the model output
-                model_output, target = self.model.forward(x=input_tensor, mask=mask_tensor)
+                model_output, target = self.model.forward(x=input_tensor.to(get_device()), mask=mask_tensor.to(get_device()))
 
                 # Compute the losses
                 # The loss is computed on the model output and the target
@@ -527,10 +572,82 @@ class Trainer:
             # Print the loss
             epoch_loss = np.average(losses)
             loss_per_epoch.append(epoch_loss)
-            print('Epoch:', epoch, 'Loss:', epoch_loss)
-            
+
+            end_time = time.time()
+            epoch_time = end_time - start_time
+
+            print('Epoch:', epoch, 'Loss:', epoch_loss, 'Time:', epoch_time,'seconds')
             with open('loss_per_epoch.pkl', 'wb') as file:
                 pickle.dump(loss_per_epoch, file)
 
         return loss_per_epoch
     
+def pad_left(sequence, final_length, padding_token):
+    return [padding_token] * (final_length - len(sequence)) + sequence
+
+
+class Generator:
+
+    def __init__(
+            self,
+            model,
+            tokenizer):
+        self.model = model
+        self.tokenizer = tokenizer
+
+    def generate(
+            self,
+            max_tokens_to_generate: int,
+            prompt: str = None,
+            temperature: float = 1.0,
+            eos_token: int = None,
+            padding_token: int = 0):
+
+        self.model.eval()
+
+        if prompt is None:
+            start_tokens = [self.tokenizer.character_to_token(padding_token)]
+        else:
+            start_tokens = self.tokenizer.tokenize(prompt)
+
+        input_tensor = torch.tensor(
+            pad_left(
+                sequence=start_tokens,
+                final_length=self.model.max_sequence_length + 1,
+                padding_token=padding_token
+            ),
+            dtype=torch.long
+        ).to('cuda')
+
+        num_dims = len(input_tensor.shape)
+
+        if num_dims == 1:
+            input_tensor = input_tensor[None, :]
+
+        out = input_tensor
+        for _ in range(max_tokens_to_generate):
+
+            x = out[:, -self.model.max_sequence_length:]
+
+            mask = torch.ones_like(x)
+            mask[x == padding_token] = 0
+
+            # Compute the next token probabilities
+            next_token_probabilities = self.model.next_token_probabilities(
+                x=x,
+                temperature=temperature,
+                mask=mask
+            ).to(get_device())
+
+            # Sample the next token from the probability distribution
+            next_token = torch.multinomial(next_token_probabilities, num_samples=1)
+
+            # Append the next token to the output
+            out = torch.cat([out, next_token], dim=1)
+
+            # If the end of sequence token is reached, stop generating tokens
+            if eos_token is not None and next_token == eos_token:
+                break
+
+        generated_tokens = out[0].tolist()
+        return ''.join([self.tokenizer.token_to_character(token) for token in generated_tokens])
