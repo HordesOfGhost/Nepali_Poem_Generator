@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nepali Poem Generator</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <form method="post" action="/">
+        <h1>Nepali Poem Generator</h1>
+
+        <label for="text_area">Text Area:</label>
+        <textarea id="text_area" name="text_area" rows="4" cols="50">{{prompt_text}}</textarea>
+
+        <label for="token_size">Token Size:</label>
+        <input type ="number" name="token_size" value = {{token_to_generate}}></input>
+
+        <label for="dropdown">Select Model:</label>
+        <select id="dropdown" name="dropdown">
+            <option value="nepali_lstm">LSTM</option>
+            <option value="transformer_100">Transformer 100</option>
+            <option value="transformer_250">Transformer 250</option>
+            <option value="GPT2">GPT-2</option>
+            <option value="DistilGPT2">DistilGPT-2</option>
+        </select>
+
+        <br>
+
+        <input type="submit" value="Generate">
+        
+        <div id="output">
+            {{ generated_text }}
+        </div>
+
+    </form>
+</body>
+</html>
