@@ -1,12 +1,12 @@
 import torch
 from models import *
 
-poem_file = open('C:/Users/Ghost/Desktop/gits/Nepali_Poem_Generator/datasets/poem.txt','r',encoding='utf-8')
+poem_file = open('datasets/poem.txt','r',encoding='utf-8')
 poem = poem_file.read()
 
 poem_corpus = poem.split("\n")
 processed_poem_corpus = remove_noise(poem_corpus)
-
+processed_poem_corpus_text = ' '.join(processed_poem_corpus)
 
 def create_training_sequences(max_sequence_length, tokenized_training_data):
     # Create sequences of length max_sequence_length + 1
