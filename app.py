@@ -11,10 +11,10 @@ def index():
         selected_model = request.form.get('dropdown')
         token_size = int(request.form.get('token_size'))
         
-        if selected_model == 'transformer_100' or selected_model == 'transformer_250':
+        if selected_model == 'Transformer100' or selected_model == 'Transformer250':
             generated_text = inference_from_transformer(prompt_text, selected_model, token_size)
 
-        elif selected_model == 'nepali_lstm':
+        elif selected_model == 'LSTM':
             generated_text = inference_from_nepali_lstm(prompt_text, token_size)
         
         elif selected_model == 'DistilGPT2':

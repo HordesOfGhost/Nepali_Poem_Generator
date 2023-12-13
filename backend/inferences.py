@@ -33,7 +33,7 @@ def inference_from_nepali_lstm(prompt_text, tokens_to_generate):
         tokenizer = tokenizer_from_json(tokenizer_json)
     
     # Load model
-    model = load_model('backend/models/LSTM/nepali_lstm.h5')
+    model = load_model('backend/models/LSTM/LSTM.h5')
     max_sequence_len = 11
 
     for _ in range(tokens_to_generate):
