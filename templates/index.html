@@ -21,8 +21,8 @@
         <label for="dropdown">Select Model:</label>
         <select id="dropdown" name="dropdown">
             <option value="LSTM">LSTM</option>
-            <option value="Transformer100">Transformer 100</option>
-            <option value="Transformer250">Transformer 250</option>
+            <option value="TransformerWtChar">Transformer With Char</option>
+            <option value="TransformerWtWord">Transformer With Word</option>
             <option value="GPT2">GPT-2</option>
             <option value="DistilGPT2">DistilGPT-2</option>
         </select>
@@ -35,7 +35,11 @@
            Model : {{ selected_model }}
         </div>
         <div id="output">
-            {{ generated_text }}
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                {% for line in generated_text_lines %}
+                    <li>{{ line.strip() }}</li>
+                {% endfor %}
+            </ul>
         </div>
 
     </form>

@@ -16,8 +16,54 @@ def remove_noise(sentences):
         processed_sentences.append(sentence)
 
     return processed_sentences
+    
+# Word Tokenizer
+class NepaliWordTokenizer:
 
-class NepaliTokenizer:
+    def __init__(self, text):
+        self.dictionary = {}
+        self.reverse_dictionary = {}
+
+        # Add the padding token
+        self.__add_to_dict('<pad>')
+        self.__add_to_dict(' ')
+
+        # Add Nepali words to the dictionary
+        words = text.split(' ')
+    
+        for word in words:
+            self.__add_to_dict(word)
+        
+
+    def __add_to_dict(self, word):
+        if word not in self.dictionary:
+            self.dictionary[word] = len(self.dictionary)
+            self.reverse_dictionary[self.dictionary[word]] = word
+
+    def tokenize(self, text):
+        words = text.split(' ')
+        words_with_space = []
+        for index, word in enumerate(words):
+            words_with_space.append(word)
+            if index != len(words)-1:
+                words_with_space.append(' ')
+        
+        return [self.dictionary.get(word, self.dictionary['<pad>']) for word in words_with_space]  # Use '<pad>' token for unknown words
+
+    def character_to_token(self, word):
+        return self.dictionary.get(word, self.dictionary['<pad>'])
+
+    def token_to_character(self, token):
+        return self.reverse_dictionary.get(token, '<pad>')
+
+    def left_pad_tokens(self, tokens, max_length):
+        padded_tokens = np.pad(tokens, (max_length - len(tokens), 0), 'constant', constant_values=0)
+        return padded_tokens.tolist()
+
+    def size(self):
+        return len(self.dictionary)
+    
+class NepaliCharacterTokenizer:
 
     def __init__(self):
         self.dictionary = {}

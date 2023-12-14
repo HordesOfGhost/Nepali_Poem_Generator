@@ -1,2 +1,7 @@
 Links To Model:
 https://drive.google.com/drive/folders/1myZ0nqXyBqdSlox_8kjPZ2EbmfNK4tzj?usp=drive_link
+
+Go to the link.
+Download the models.
+Extract the rar files.
+Copy them to backend/models.

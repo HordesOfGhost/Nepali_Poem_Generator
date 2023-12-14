@@ -10,11 +10,22 @@ import tensorflow as tf
 tf.config.run_functions_eagerly(True) 
 
 
+poem_file = open('backend/datasets/poem.txt','r',encoding='utf-8')
+poem = poem_file.read()
+
+poem_corpus = poem.split("\n")
+processed_poem_corpus = remove_noise(poem_corpus)
+processed_poem_corpus_text = ' '.join(processed_poem_corpus)
+
+
 def inference_from_transformer(prompt_text, model_name, tokens_to_generate):
     model = AutoregressiveWrapper
     tr = model.load_checkpoint(f'backend/models/Transformers/{model_name}')
-
-    tokenizer = NepaliTokenizer()
+    
+    if model_name == 'TransformerWtChar':
+        tokenizer = NepaliCharacterTokenizer()
+    else:
+        tokenizer = NepaliWordTokenizer(processed_poem_corpus_text)
 
     generator = Generator(tr, tokenizer)
 

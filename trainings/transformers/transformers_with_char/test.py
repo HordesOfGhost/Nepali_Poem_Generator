@@ -1,4 +1,4 @@
-from models import *
+from models_char import *
 
 model = AutoregressiveWrapper
 tr = model.load_checkpoint('./trained_model')
