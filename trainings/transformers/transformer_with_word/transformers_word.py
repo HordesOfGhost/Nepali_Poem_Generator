@@ -59,7 +59,7 @@ print(f"Training on {get_device()}")
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 trainer = Trainer(model, tokenizer, optimizer)
-trainer.train(sequences, epochs=250, batch_size=8)
+trainer.train(sequences, epochs=15, batch_size=8)
 
 
 model.save_checkpoint('./trained_model')
